@@ -42,6 +42,29 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.conf import settings
 
+from random import randint
+from urllib import urlencode
+from urllib2 import urlopen
+from urlparse import urlunparse
+from hashlib import sha1
+
+def pushGoogleAnalyticsData(targets):
+    if not settings.GOOGLE_ANALYTICS_ID: return
+    VISITOR = "graphite"
+    VISITOR = str(int("0x%s" % sha1(VISITOR).hexdigest(), 0))[:10]
+    for PATH in targets:
+        DATA = {"utmwv": "5.2.2d",
+            "utmn": str(randint(1, 9999999999)),
+            "utmp": PATH,
+            "utmac": settings.GOOGLE_ANALYTICS_ID,
+            "utmcc": "__utma=%s;" % ".".join(["1", VISITOR, "1", "1", "1", "1"])}
+        URL = urlunparse(("http",
+                      "www.google-analytics.com",
+                      "/__utm.gif",
+                      "",
+                      urlencode(DATA),
+                      ""))
+        urlopen(URL)
 
 def renderView(request):
   start = time()
@@ -299,6 +322,7 @@ def parseOptions(request):
     requestOptions['startTime'] = startTime
     requestOptions['endTime'] = endTime
 
+  pushGoogleAnalyticsData(mytargets)
   return (graphOptions, requestOptions)
 
 
